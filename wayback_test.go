@@ -21,6 +21,42 @@ func TestSavedURL(t *testing.T) {
 	fmt.Println(u)
 }
 
+func TestHumanDate(t *testing.T) {
+
+	var d1 = "http://web.archive.org/web/20170413225815/http://www.nationalarchives.gov.uk/"
+	var d2 = "http://web.archive.org/web/20030415174607/http://www.nationalarchives.gov.uk:80/"
+	var d3 = "http://web.archive.org/web/19961221203254/http://www0.bbc.co.uk:80/"
+	var d4 = "http://web.archive.org/web/19961221203254/http://www0.bbc.co.uk:80/"
+
+	var e1 = "13 April 2017"
+	var e2 = "15 April 2003"
+	var e3 = "21 December 1996"
+	var e4 = "21 December 1996"
+
+	r1 := GetHumanDate(d1)
+	if r1 != e1 {
+		t.Errorf("Unexpected response '%s', expected: '%s'", r1, e1)
+	}
+
+	r2 := GetHumanDate(d2)
+	if r2 != e2 {
+		t.Errorf("Unexpected response '%s', expected: '%s'", r2, e2)
+	}
+
+	r3 := GetHumanDate(d3)
+	if r3 != e3 {
+		t.Errorf("Unexpected response '%s', expected: '%s'", r3, e3)
+	}
+
+	r4 := GetHumanDate(d4)
+	if r4 != e4 {
+		t.Errorf("Unexpected response '%s', expected: '%s'", r4, e4)
+	}
+
+
+}
+
+// Mock a response from the internet archive...
 func generateInternetArchiveSaveMock() http.Response {
 
 	var r = http.Response{}

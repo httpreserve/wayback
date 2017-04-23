@@ -128,6 +128,7 @@ func GetWaybackData(link string) (Data, error) {
 //Explanation: https://andrey.nering.com.br/2015/how-to-format-date-and-time-with-go-lang/
 //Golang Date Formatter: http://fuckinggodateformat.com/
 const datelayout = "20060102150405"
+const humandate = "02 January 2006"
 
 // GetPotentialURLLatest is used to create a URL that we can test for a 404
 // error or 200 OK. The URL if it works can be used to display to
@@ -152,6 +153,38 @@ func GetPotentialURLLatest(archiveurl string) (*url.URL, error) {
 func GetPotentialURLEarliest(archiveurl string) (*url.URL, error) {
 	oldestDate := time.Date(1900, time.August, 31, 23, 13, 0, 0, time.Local).Format(datelayout)
 	return constructURL(oldestDate, archiveurl)
+}
+
+const split1 = iaRoot + "/web/"
+const split2 = iaBeta + "/web/"
+const split3 = iaSRoot + "/web/"
+const split4 = iaSBeta + "/web/"
+
+var iasplits = []string{split1, split2, split3, split4}
+
+// GetHumanDate returns a human readable date from an Internet Archive link
+// rudimentary code for now. Can improve once we've got other pieces working.
+func GetHumanDate(link string) string {
+	var dateslug string
+	for i := range iasplits {
+		if strings.Contains(link, iasplits[i]) {
+			r := strings.Split(link, iasplits[i])
+			if len(r) == 2 {
+				s := strings.Split(r[1], "/")
+				dateslug = s[0]
+			}
+		}
+	}
+
+	if dateslug != "" {
+		//latestDate := time.Now().Format(datelayout)
+		date, err := time.Parse(datelayout, dateslug)
+		if err != nil {
+			return ""
+		}
+		return date.Format(humandate)
+	}
+	return ""
 }
 
 // Construct the url to return to either the IA earliest or latest
