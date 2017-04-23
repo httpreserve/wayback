@@ -45,7 +45,7 @@ type Data struct {
 	EarliestWayback string // String denoting the Earliest Wayback URL
 	LatestWayback   string // String denoting the Latest available Wayback URL
 	WaybackSaveURL  string // String to handle saving of the link in Wayback
-	ResponseCode    int    // Reponse code from the Internet Archive
+	ResponseCode    int    // Resonse code from the Internet Archive
 	ResponseText    string // Human readable response text from the Internet Archive
 }
 
