@@ -53,7 +53,6 @@ func TestHumanDate(t *testing.T) {
 		t.Errorf("Unexpected response '%s', expected: '%s'", r4, e4)
 	}
 
-
 }
 
 // Mock a response from the internet archive...
