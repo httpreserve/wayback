@@ -17,13 +17,6 @@ const iaSBeta = "https://web-beta.archive.org"
 
 const iaSave = "/save/" //e.g. https://web.archive.org/save/http://www.bbc.com/news
 const iaWeb = "/web/"   //e.g. http://web.archive.org/web/20161104020243/http://exponentialdecayxxxx.co.uk/#
-const iaRel = "rel="
-
-// WAYEARLY helps us to retrieve the earliest link from memento
-const WAYEARLY = "earliest"
-
-// WAYLATE helps us to retrieve the latest link from memento
-const WAYLATE = "latest"
 
 // IsWayback checks a URL (string) and returns whether or not we expect it
 // to be an internet archive link or not...
@@ -83,7 +76,7 @@ func GetWaybackData(link string, agent string) (Data, error) {
 			sr.Agent(agent)
 		}
 
-		sr.Redirect(true)
+		sr.NoRedirect(true)
 
 		//set some values for the simplerequest...
 		sr.Timeout(10)
@@ -98,35 +91,25 @@ func GetWaybackData(link string, agent string) (Data, error) {
 
 		// First test for existence of an internet archive copy
 		if wb.ResponseCode == http.StatusNotFound {
-			if resp.Header.Get("Link") == "" {
+			if resp.Header.Get("Location") == "" {
 				wb.NotInWayback = true
 				return wb, nil
 			}
 		}
 
 		// Else, continue to retrieve IA links
-		iaLinkData := resp.Header.Get("Link")
-		iaLinkInfo := strings.Split(iaLinkData, ", <")
+		// Try and get the latest link available in the archive...
+		wb.EarliestWayback = resp.Header.Get("Location")
 
-		var mementomap = make(map[string]string)
-
-		for _, lnk := range iaLinkInfo {
-			trimmedlink := strings.Trim(lnk, " ")
-			trimmedlink = strings.Replace(trimmedlink, ">;", ";", 1) // fix chevrons
-			for _, rel := range iaRelList {
-				if strings.Contains(trimmedlink, rel) {
-					mementomap[rel] = trimmedlink
-					break
-				}
-			}
+		// Reuse our previous SimpleRequest struct to redo the work... 
+		sr.URL, _ = GetPotentialURLLatest(link)
+		resp, err = sr.Do()
+		if err != nil {
+			return wb, errors.Wrap(err, "IA http request failed")
 		}
 
-		// We've some internet archive links that we can use
-		if len(mementomap) > 0 {
-			links := GetWaybackLinkrange(mementomap)
-			wb.EarliestWayback = links[WAYEARLY]
-			wb.LatestWayback = links[WAYLATE]
-		}
+		// Add to our wayback structure...
+		wb.LatestWayback = resp.Header.Get("Location")
 
 	} else {
 		wb.AlreadyWayback = ErrorIAExists
@@ -236,42 +219,6 @@ func GetSavedURL(resp http.Response) (*url.URL, error) {
 		return &url.URL{}, errors.Wrap(err, "creation of URL from http response failed.")
 	}
 	return u, nil
-}
-
-// Memento returns various relationship attributes
-// These are the ones observed so far in this work.
-// Rather than separating the attributes, use whole string.
-const relFirst = "rel=\"first memento\""          // syn: first, at least two
-const relNext = "rel=\"next memento\""            // syn: at least three
-const relLast = "rel=\"last memento\""            // syn: last, at least three
-const relFirstLast = "rel=\"first last memento\"" // syn: only
-const relNextLast = "rel=\"next last memento\""   // syn: second, and last
-const relPrevLast = "rel=\"prev memento\""        // syn: at least three
-const relPrevFirst = "rel=\"prev first memento\"" // syn: previous, and first, only two
-
-// List of items to check against when parsing header attributes
-var iaRelList = [...]string{relFirst, relNext, relLast, relFirstLast,
-	relNextLast, relPrevLast, relPrevFirst}
-
-// GetWaybackLinkrange will return the earliest and latest wayback links based on
-// an understanding of the headers returned by the server.
-func GetWaybackLinkrange(legacyCollection map[string]string) map[string]string {
-	var links = make(map[string]string)
-	for rel, lnk := range legacyCollection {
-		switch rel {
-		// first two cases give us the earliest IA link available
-		case relFirst:
-			fallthrough
-		case relFirstLast:
-			links[WAYEARLY] = getWaybackfromRel(lnk)
-		// second two cases give us the latest IA link available
-		case relLast:
-			fallthrough
-		case relNextLast:
-			links[WAYLATE] = getWaybackfromRel(lnk)
-		}
-	}
-	return links
 }
 
 // Retrieve the IA www link that we've been passing about
