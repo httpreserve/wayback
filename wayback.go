@@ -57,8 +57,9 @@ var ErrorNoIALink = errors.New("no internet archive record")
 var ErrorIAExists = errors.New("already an internet archive record")
 
 // GetWaybackData returns some wayback information for the calling code in an
-// appropriate struct... groups external functions conveniently
-func GetWaybackData(link string) (Data, error) {
+// appropriate struct... groups external functions conveniently, when calling
+// externally, users can set their own agent string as required...
+func GetWaybackData(link string, agent string) (Data, error) {
 
 	var wb Data
 
@@ -72,6 +73,17 @@ func GetWaybackData(link string) (Data, error) {
 		// We don't NotWaybackhave to be concerned with error here is URL is already
 		// previously Parsed correctly, which we do so dilligently under iafunctions.go
 		sr, err := simplerequest.Create(simplerequest.HEAD, earliest.String())
+
+		sr.Accept("*/*")
+
+		// Custom user agent...
+		if agent == "" {
+			sr.Agent(Version())
+		} else {
+			sr.Agent(agent)
+		}
+
+		sr.Redirect(true)
 
 		//set some values for the simplerequest...
 		sr.Timeout(10)
@@ -272,4 +284,11 @@ func getWaybackfromRel(lnk string) string {
 		}
 	}
 	return ""
+}
+
+var version = "httpreserve-wayback-0.0.1"
+
+// Version retrieves the version text for the httpreserve/wayback agent
+func Version() string {
+	return version
 }
