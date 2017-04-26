@@ -77,3 +77,30 @@ func generateInternetArchiveSaveMock() http.Response {
 
 	return r
 }
+
+func TestSubmitToInternetArchive(t *testing.T) {
+
+	// Not best practice to create a network connection during a unit test
+	// maintain tests as a method of reverse engineering the wayback response
+	// we can remove this once we've a better track record at handling the return
+
+	var err error
+	resp, err := SubmitToInternetArchive("http://www.bbc.co.uk/news", Version())
+	if err != nil {
+		t.Errorf("Unexpected response '%s', expected: '%s'", err.Error(), "nil")
+	}
+
+	resp, err = SubmitToInternetArchive("http://www.jezebel.com", Version())
+	if err != nil {
+		if err.Error() != SaveForbidden {
+			t.Errorf("Unexpected response '%s', '%s', expected: '%s'", err.Error(), resp.StatusText, SaveForbidden)
+		}
+	}
+
+	resp, err = SubmitToInternetArchive("http://xrssrssx.com", Version())
+	if err != nil {
+		if err.Error() != SaveGone {
+			t.Errorf("Unexpected response '%s', '%s', expected: '%s'", err.Error(), resp.StatusText, SaveGone)
+		}
+	}
+}

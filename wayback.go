@@ -60,7 +60,7 @@ func GetWaybackData(link string, agent string) (Data, error) {
 
 		earliest, err := GetPotentialURLEarliest(link)
 		if err != nil {
-			return wb, errors.Wrap(err, "IA url creation failed")
+			return wb, errors.Wrap(err, "wayback url creation failed")
 		}
 
 		// We don't NotWaybackhave to be concerned with error here is URL is already
@@ -83,7 +83,7 @@ func GetWaybackData(link string, agent string) (Data, error) {
 
 		resp, err := sr.Do()
 		if err != nil {
-			return wb, errors.Wrap(err, "IA http request failed")
+			return wb, errors.Wrap(err, "wayback request failed")
 		}
 
 		wb.ResponseCode = resp.StatusCode
@@ -105,7 +105,7 @@ func GetWaybackData(link string, agent string) (Data, error) {
 		sr.URL, _ = GetPotentialURLLatest(link)
 		resp, err = sr.Do()
 		if err != nil {
-			return wb, errors.Wrap(err, "IA http request failed")
+			return wb, errors.Wrap(err, "wayback request failed")
 		}
 
 		// Add to our wayback structure...
@@ -187,7 +187,7 @@ func GetHumanDate(link string) string {
 func constructURL(iadate string, archiveurl string) (*url.URL, error) {
 	newurl, err := url.Parse(iaRoot + iaWeb + iadate + "/" + archiveurl)
 	if err != nil {
-		return newurl, errors.Wrap(err, "internet archive url creation failed")
+		return newurl, errors.Wrap(err, "wayback url creation failed")
 	}
 	return newurl, nil
 }
@@ -199,11 +199,62 @@ func SaveURL(link string) string {
 	return iaRoot + iaSave + link
 }
 
+// SaveForbidden indecates that a robots.txt may be blocking the save
+const SaveForbidden = "save forbidden by website"
+
+// SaveGone indecates that the website may no longer exist at-all
+const SaveGone = "bac gateway website maybe gone"
+
+// SaveUnknown indicates an error in saving we haven't seen yet
+const SaveUnknown = "unknown save error inspect response to improve code"
+
 // SubmitToInternetArchive will handle the request and response to
 // and from the Internet Archive for a URL that we wish to save as
 // part of this initiative.
-func SubmitToInternetArchive() {
+func SubmitToInternetArchive(link string, agent string) (simplerequest.SimpleResponse, error) {
 
+	// make savelink from url submitted
+	sl := SaveURL(link)
+
+	// We don't NotWaybackhave to be concerned with error here is URL is already
+	// previously Parsed correctly, which we do so dilligently under iafunctions.go
+	sr, err := simplerequest.Create(simplerequest.HEAD, sl)
+	if err != nil {
+		return simplerequest.SimpleResponse{}, err
+	}
+
+	sr.Accept("*/*")
+
+	// Custom user agent...
+	if agent == "" {
+		sr.Agent(Version())
+	} else {
+		sr.Agent(agent)
+	}
+
+	sr.NoRedirect(true)
+
+	//set some values for the simplerequest...
+	sr.Timeout(10)
+
+	resp, err := sr.Do()
+
+	if err != nil {
+		return simplerequest.SimpleResponse{}, errors.Wrap(err, "wayback save request failed")
+	}
+
+	if resp.StatusCode != 200 {
+		switch resp.StatusCode {
+		case http.StatusBadGateway:
+			return resp, errors.New(SaveGone)
+		case http.StatusForbidden:
+			return resp, errors.New(SaveForbidden)
+		default:
+			return resp, errors.New(SaveUnknown)
+		}
+	}
+
+	return resp, nil
 }
 
 // GetSavedURL will help us to retrieve the URL returned by the
