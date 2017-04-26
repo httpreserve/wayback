@@ -203,7 +203,7 @@ func SaveURL(link string) string {
 const SaveForbidden = "save forbidden by website"
 
 // SaveGone indecates that the website may no longer exist at-all
-const SaveGone = "bad gateway website maybe gone"
+const SaveGone = "bad gateway website maybe no more"
 
 // SaveUnknown indicates an error in saving we haven't seen yet
 const SaveUnknown = "unknown save error inspect response to improve code"
