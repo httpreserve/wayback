@@ -79,7 +79,7 @@ func GetWaybackData(link string, agent string) (Data, error) {
 		sr.NoRedirect(true)
 
 		//set some values for the simplerequest...
-		sr.Timeout(10)
+		sr.Timeout(5 * time.Second)
 
 		resp, err := sr.Do()
 		if err != nil {
@@ -235,7 +235,7 @@ func SubmitToInternetArchive(link string, agent string) (simplerequest.SimpleRes
 	sr.NoRedirect(true)
 
 	//set some values for the simplerequest...
-	sr.Timeout(10)
+	sr.Timeout(5 * time.Second)
 
 	resp, err := sr.Do()
 
@@ -243,7 +243,7 @@ func SubmitToInternetArchive(link string, agent string) (simplerequest.SimpleRes
 		return simplerequest.SimpleResponse{}, errors.Wrap(err, "wayback save request failed")
 	}
 
-	if resp.StatusCode != 200 {
+	if resp.StatusCode != 200 && resp.StatusCode != 302 {
 		switch resp.StatusCode {
 		case http.StatusBadGateway:
 			return resp, errors.New(SaveGone)
